@@ -14,7 +14,7 @@ char SketchVersion[16] = "stove v0.1";
 
 //доп переменные
 boolean EmergencyExitCode = false;
-int FireRunning[] = { 0, 0, 0, 0, 0 };
+boolean FireRunning[] = { false, false, false, false, false };
 
 //цифровые выходы (прерывания только на 2 и 3 пине)
 const int ButtonFirePWMUP = 2; //прибавить огня (увеличить шим/pwm на выбраном соленойде)
@@ -102,11 +102,10 @@ void PrintMessage(char SystemMessage[16]) {
 
 void FireOn(int ID) {
   wdt_reset(); //сбрасываем вочдог
-  boolean UzheNazhimal=0;
   if (EmergencyExitCode != 1 ) {
     //проверяем нажата ли кнопка энкодера
     DebouncedBurnerButton[ID].update();
-    if ( DebouncedBurnerButton[ID].read() == LOW && FireRunning[ID] == 0 ) {
+    if ( DebouncedBurnerButton[ID].read() == LOW && FireRunning[ID] == false ) {
       Serial.print("Stove #");
       Serial.print(ID);
       Serial.println(" startup ... ");
@@ -145,7 +144,7 @@ void FireOn(int ID) {
            
       FireRunning[ID] = 1;
       //      FireRunning[ID] = 1;
-    }   else if ( DebouncedBurnerButton[ID].read() == LOW && FireRunning[ID] == 1 ) {
+    }   else if ( DebouncedBurnerButton[ID].read() == LOW && FireRunning[ID] == true ) {
      
     DebouncedButtonFirePWMUP.update();
     DebouncedButtonFirePWMDOWN.update();      
@@ -173,6 +172,8 @@ void FireOn(int ID) {
         if (PWMAmmount[ID] <= 0) {
           PWMAmmount[ID]=0;
           digitalWrite(BurnerPWMSolenoid[ID], LOW);
+          FireRunning[ID] = false; //выходим из цикла так как ставим переменную что не горим
+          PWMAmmount[ID]=127; // ставим в исходное положение 50% 
         } else {
           analogWrite(BurnerPWMSolenoid[ID], PWMAmmount[ID]);
         }
@@ -190,7 +191,7 @@ press_cancelled:;
 
 void setup() {
   Serial.begin(9600);
-  //wdt_enable(WDTO_8S); //устанавливаем вочдог на 8 секунд
+  wdt_enable(WDTO_8S); //устанавливаем вочдог на 8 секунд
   BurnerInit();
   PrintMessage("Stove 0.1 OK");
   while (EmergencyExitCode != 1) {
